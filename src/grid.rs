@@ -28,9 +28,9 @@ impl Plugin for MyGridPlugin {
     }
 }
 
-const CHUNK_SIZE: i32 = 8;
+const CHUNK_SIZE: i32 = 10;
 const RENDER_DISTANCE: i32 = 4;
-const WORLDMAXSIZE: i32 = 200; // defines the max distance in all axis neg and pos
+pub const WORLDMAXSIZE: i32 = 200; // defines the max distance in all axis neg and pos
 pub const GRIDSQUARESIZE: u32 = 12;
 
 fn generate_new_chunk_data(mut desired_chunks:ResMut<DesiredChunks>,cam_main:Res<MainCameraActualPosition>) {
@@ -59,7 +59,7 @@ fn spawn_new_chunks(mut commands:Commands,mut loaded_chunks:ResMut<LoadedChunks>
         if !loaded_chunks.0.contains(&chunk_coords) {
             let (chunk_x, chunk_y) = chunk_coords;
 
-            if (chunk_x > WORLDMAXSIZE || chunk_y > WORLDMAXSIZE) || (chunk_x < -WORLDMAXSIZE || chunk_y < -WORLDMAXSIZE) { continue; }
+            if (chunk_x > WORLDMAXSIZE || chunk_y > WORLDMAXSIZE) || (chunk_x < 0 || chunk_y < 0) { continue; }
             
             for x in 0..CHUNK_SIZE {
                 for y in 0..CHUNK_SIZE {
@@ -78,7 +78,7 @@ fn spawn_new_chunks(mut commands:Commands,mut loaded_chunks:ResMut<LoadedChunks>
                             ..default()
                         },
                         Sprite {
-                            color: assign_color(noise_value),
+                            color: pastel_gradient_palette(noise_value),
                             custom_size: Some(Vec2::new(1.,1.)),
                             ..default()
                         },
@@ -89,6 +89,43 @@ fn spawn_new_chunks(mut commands:Commands,mut loaded_chunks:ResMut<LoadedChunks>
             loaded_chunks.0.insert(chunk_coords);
         }
     }
+}
+
+fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t
+}
+
+fn lerp_color(a: (f32, f32, f32), b: (f32, f32, f32), t: f32) -> Color {
+    Color::srgb(
+        lerp(a.0, b.0, t),
+        lerp(a.1, b.1, t),
+        lerp(a.2, b.2, t),
+    )
+}
+
+fn pastel_gradient_palette(value: f64) -> Color {
+    // Clamp value to [0.0, 1.0]
+    let v = value.clamp(0.0, 1.);
+
+    let stops = [
+        (0.0,  (0.77, 0.93, 0.78)), // Light green
+        (0.25, (0.90, 0.97, 0.92)), // Mint
+        (0.5,  (0.98, 0.98, 0.98)), // White
+        (0.75, (0.56, 0.62, 0.73)), // Deep gray blue
+        (1.0,  (0.98, 0.81, 0.62)), // Pastel orange
+    ];
+
+    for i in 0..(stops.len() - 1) {
+        let (start_val, start_col) = stops[i];
+        let (end_val, end_col) = stops[i + 1];
+        if v >= start_val && v <= end_val {
+            let t = (v - start_val) / (end_val - start_val);
+            return lerp_color(start_col, end_col, t as f32);
+        }
+    }
+
+    // Fallback (should never hit if v in [0,1])
+    Color::srgb(0.88, 0.86, 0.98)
 }
 
 fn assign_color(value: f64) -> Color {
