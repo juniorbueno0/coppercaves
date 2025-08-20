@@ -6,7 +6,7 @@ struct CameraSettings {
 }
 
 const CAMERA: CameraSettings = CameraSettings {
-    mov_speed: 26.,
+    mov_speed: 52.,
     zoom_speed: 0.33
 };
 
