@@ -4,6 +4,9 @@ use bevy::{platform::collections::HashSet, prelude::*};
 
 use crate::camera::MainCameraActualPosition;
 
+#[derive(Debug, Component)]
+struct GridSquare;
+
 #[derive(Debug, Resource)]
 struct PerlinInstance { value: Perlin }
 
@@ -26,15 +29,17 @@ impl Plugin for MyWorldPlugin {
         app.insert_resource(PerlinInstance{value:Perlin::new(9)});
 
         app.add_systems(Startup, (generate_path_grid, setup_grid_data.after(generate_path_grid)));
-        app.add_systems(Update, (generate_new_chunk_data, spawn_new_chunks));
+        app.add_systems(Update, (generate_new_chunk_data, spawn_new_chunks, cleanup_distant_chunks));
     }
 }
 
-const CHUNK_SIZE: i32 = 8;
-const RENDER_DISTANCE: i32 = 2;
+const CHUNK_SIZE: i32 = 4;
+const RENDER_DISTANCE: i32 = 1;
 
 const TILESIZE: i32 = 12;
-const GRIDSIZE: f32 = 120.0;
+const GRIDSIZE: f32 = 100.0;
+
+const CHUNK_WORLD_SIZE: i32 = CHUNK_SIZE * TILESIZE; // 8 * 12 = 96
 
 fn generate_path_grid(mut commands: Commands,) {
     let grid_settings = GridSettingsBuilder::new_2d(GRIDSIZE as u32, GRIDSIZE as u32).chunk_size(TILESIZE as u32).build();
@@ -44,9 +49,7 @@ fn generate_path_grid(mut commands: Commands,) {
 }
 
 fn setup_grid_data(
-    // mut commands: Commands,
     perlin: Res<PerlinInstance>,
-    // mut chunk_data: ResMut<ChunkData>,
     grid: Single<&mut CardinalGrid>,
 ) {
     let mut grid = grid.into_inner();
@@ -64,27 +67,14 @@ fn setup_grid_data(
                 (-0.6..=-0.4) => { grid.set_nav(UVec3::new(x as u32, y as u32, 0), Nav::Impassable);},
                 _ => {  },
             };
-
-            // let x_real_pos = (x * TILESIZE) as f32;
-            // let y_real_pos = (y * TILESIZE) as f32;
-
-            // commands.spawn((
-            //     Transform::from_xyz(x_real_pos, y_real_pos, 0.0),
-            //     Sprite {
-            //         color: color,
-            //         custom_size: Some(Vec2{x:1. * TILESIZE as f32,y:1. * TILESIZE as f32}),
-            //         ..Default::default()
-            //     }
-            // ));
         }
     }
     grid.build();
 }
 
-// render chunks
 fn generate_new_chunk_data(mut desired_chunks:ResMut<DesiredChunks>,cam_main:Res<MainCameraActualPosition>) {
-    let camera_chunk_x = (cam_main.0.x / CHUNK_SIZE as f32).floor() as i32;
-    let camera_chunk_y = (cam_main.0.y / CHUNK_SIZE as f32).floor() as i32;
+    let camera_chunk_x = (cam_main.0.x / CHUNK_WORLD_SIZE as f32).floor() as i32;
+    let camera_chunk_y = (cam_main.0.y / CHUNK_WORLD_SIZE as f32).floor() as i32;
     
     desired_chunks.chunks = HashSet::new();
     for chunk_xx in (camera_chunk_x - RENDER_DISTANCE)..=(camera_chunk_x + RENDER_DISTANCE) {
@@ -97,21 +87,20 @@ fn generate_new_chunk_data(mut desired_chunks:ResMut<DesiredChunks>,cam_main:Res
 fn spawn_new_chunks(
     mut commands:Commands,
     perlin:Res<PerlinInstance>,
-    // chunk_data: Res<ChunkData>,
     desired_chunks:Res<DesiredChunks>,
     mut loaded_chunks:ResMut<LoadedChunks>,
 ) {
     for &chunk_coords in desired_chunks.chunks.iter() {
         if !loaded_chunks.chunks.contains(&chunk_coords) {
-            // let (x_coord, y_coord) = chunk_coords;
-            // println!("x_coord: {:?}, y_coord: {:?}", x_coord, y_coord);
+            let (chunk_x, chunk_y) = chunk_coords;
 
             for x in 0..CHUNK_SIZE {
                 for y in 0..CHUNK_SIZE {
-                    // let (x_world, y_world) = ((x_coord * TILESIZE + x), (y_coord * TILESIZE + y));
+                    let world_x = (chunk_x * CHUNK_SIZE + x) * TILESIZE;
+                    let world_y = (chunk_y * CHUNK_SIZE + y) * TILESIZE;
 
-                    let x_noise = ((x * TILESIZE) as f64) / 300.0;
-                    let y_noise = ((y * TILESIZE) as f64) / 300.0;
+                    let x_noise = (world_x as f64) / 300.0;
+                    let y_noise = (world_y as f64) / 300.0;
                     
                     let noise_value: f64 = perlin.value.get([x_noise, y_noise]);
 
@@ -129,17 +118,42 @@ fn spawn_new_chunks(
                     };
 
                     commands.spawn((           
-                        Transform::from_xyz((x * TILESIZE)as f32, (y * TILESIZE) as f32, 1.0),
+                        Transform::from_xyz(world_x as f32, world_y as f32, 1.0),
                         Sprite {
                             color: color,
                             custom_size: Some(Vec2{x:1. * TILESIZE as f32,y:1. * TILESIZE as f32}),
                             ..Default::default()
-                        }
+                        }, GridSquare
                     ));
-                    // println!("x: {:?}, y: {:?}", x, y);
-                    loaded_chunks.chunks.insert((x,y));
                 }
             }
+            loaded_chunks.chunks.insert(chunk_coords);
         }
+    }
+}
+
+fn cleanup_distant_chunks(
+    mut commands: Commands,
+    desired_chunks: Res<DesiredChunks>,
+    mut loaded_chunks: ResMut<LoadedChunks>,
+    sprites_query: Query<(Entity, &Transform), With<GridSquare>>,
+) {
+    let chunks_to_remove: Vec<(i32, i32)> = loaded_chunks.chunks
+        .difference(&desired_chunks.chunks)
+        .cloned()
+        .collect();
+        
+    for chunk_coord in chunks_to_remove {
+        // Remove sprites for this chunk
+        for (entity, transform) in sprites_query.iter() {
+            let chunk_x = (transform.translation.x / CHUNK_WORLD_SIZE as f32).floor() as i32;
+            let chunk_y = (transform.translation.y / CHUNK_WORLD_SIZE as f32).floor() as i32;
+            
+            if (chunk_x, chunk_y) == chunk_coord {
+                commands.entity(entity).despawn();
+            }
+        }
+        
+        loaded_chunks.chunks.remove(&chunk_coord);
     }
 }
