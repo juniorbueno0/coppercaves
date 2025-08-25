@@ -32,7 +32,7 @@ fn main() {
     app.add_plugins(world::MyWorldPlugin);
 
     // app.add_plugins(grid::MyGridPlugin);
-    // app.add_plugins(worker::Worker);
+    app.add_plugins(worker::Worker);
 
     app.add_systems(Update, (draw_player, move_player, input));
 
@@ -93,14 +93,14 @@ fn input(
         .cursor_position()
         .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
         .map(|cursor_position| {
-            let offset = Vec2::new(-384.0, -288.0);
-            let cursor_position = cursor_position - offset;
             UVec3::new(
                 (cursor_position.x / 12.0).round() as u32,
                 (cursor_position.y / 12.0).round() as u32,
                 0,
             )
         });
+
+        println!("{:?}", clicked_tile);
     // Most of this isn't important for using the crate and is standard Bevy usage.
     // We just want to demonstrate how to use the pathfinding system with a mouse click.
     if input.just_pressed(MouseButton::Left) {

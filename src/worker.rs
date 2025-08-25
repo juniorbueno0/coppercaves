@@ -5,8 +5,18 @@ pub struct Worker;
 
 impl Plugin for Worker {
     fn build(&self, app: &mut App) {
+        app.add_systems(Startup, setup);
+
         app.add_systems(Update, (draw_player, move_player, input));
     }
+}
+
+fn setup(mut commands: Commands) {
+    commands.spawn((
+        Name::new("Player"),
+        AgentPos(UVec3::new(4, 4, 0)), // Starting position in the grid.
+        Transform::from_xyz(0., 0., 0.),
+    ));
 }
 
 fn draw_player(query: Query<&Transform, With<AgentPos>>, mut gizmos: Gizmos) {

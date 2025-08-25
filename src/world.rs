@@ -37,7 +37,7 @@ const CHUNK_SIZE: i32 = 4;
 const RENDER_DISTANCE: i32 = 1;
 
 const TILESIZE: i32 = 12;
-const GRIDSIZE: f32 = 100.0;
+const GRIDSIZE: f32 = 60.0;
 
 const CHUNK_WORLD_SIZE: i32 = CHUNK_SIZE * TILESIZE; // 8 * 12 = 96
 
@@ -61,12 +61,12 @@ fn setup_grid_data(
             
             let noise_value: f64 = perlin.value.get([x_noise, y_noise]);
 
-            match noise_value {
-                (-1.2..=-0.9) => {grid.set_nav(UVec3::new(x as u32, y as u32, 0), Nav::Impassable);},
-                (-0.9..=-0.6) => {grid.set_nav(UVec3::new(x as u32, y as u32, 0), Nav::Impassable);},
-                (-0.6..=-0.4) => { grid.set_nav(UVec3::new(x as u32, y as u32, 0), Nav::Impassable);},
-                _ => {  },
-            };
+            // match noise_value {
+            //     (-1.2..=-0.9) => {grid.set_nav(UVec3::new(x as u32, y as u32, 0), Nav::Impassable);},
+            //     (-0.9..=-0.6) => {grid.set_nav(UVec3::new(x as u32, y as u32, 0), Nav::Impassable);},
+            //     (-0.6..=-0.4) => { grid.set_nav(UVec3::new(x as u32, y as u32, 0), Nav::Impassable);},
+            //     _ => {  },
+            // };
         }
     }
     grid.build();
