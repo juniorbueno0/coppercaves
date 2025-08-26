@@ -36,7 +36,7 @@ impl Plugin for MyWorldPlugin {
 const CHUNK_SIZE: i32 = 4;
 const RENDER_DISTANCE: i32 = 1;
 
-const TILESIZE: i32 = 12;
+pub const TILESIZE: i32 = 12;
 const GRIDSIZE: f32 = 60.0;
 
 const CHUNK_WORLD_SIZE: i32 = CHUNK_SIZE * TILESIZE; // 8 * 12 = 96
@@ -56,10 +56,10 @@ fn setup_grid_data(
     for x in 0..GRIDSIZE as i32 {
         for y in 0..GRIDSIZE as i32 {
 
-            let x_noise = ((x * TILESIZE) as f64) / 300.0;
-            let y_noise = ((y * TILESIZE) as f64) / 300.0;
+            // let x_noise = ((x * TILESIZE) as f64) / 300.0;
+            // let y_noise = ((y * TILESIZE) as f64) / 300.0;
             
-            let noise_value: f64 = perlin.value.get([x_noise, y_noise]);
+            // let noise_value: f64 = perlin.value.get([x_noise, y_noise]);
 
             // match noise_value {
             //     (-1.2..=-0.9) => {grid.set_nav(UVec3::new(x as u32, y as u32, 0), Nav::Impassable);},
@@ -144,7 +144,6 @@ fn cleanup_distant_chunks(
         .collect();
         
     for chunk_coord in chunks_to_remove {
-        // Remove sprites for this chunk
         for (entity, transform) in sprites_query.iter() {
             let chunk_x = (transform.translation.x / CHUNK_WORLD_SIZE as f32).floor() as i32;
             let chunk_y = (transform.translation.y / CHUNK_WORLD_SIZE as f32).floor() as i32;

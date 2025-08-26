@@ -1,6 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{camera::MainCamera, grid::GRIDSQUARESIZE};
+use crate::{camera::MainCamera, world::TILESIZE};
 
 #[derive(Resource, Debug)]
 pub struct MyWorldCoords(pub Vec2);
@@ -86,8 +86,8 @@ fn grid_click_coords(
         .map(|cursor_position| {
             let cursor_position = cursor_position;
             UVec3::new(
-                (cursor_position.x / GRIDSQUARESIZE as f32).round() as u32,
-                (cursor_position.y / GRIDSQUARESIZE as f32).round() as u32,
+                (cursor_position.x / TILESIZE as f32).round() as u32,
+                (cursor_position.y / TILESIZE as f32).round() as u32,
                 0,
             )
         });
