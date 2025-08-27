@@ -1,7 +1,13 @@
-use bevy::prelude::*;
+use bevy::{platform::collections::HashSet, prelude::*};
 
 #[derive(Resource)]
 pub struct PlayerInventory { pub stacks: Vec<ObjectStack> }
+
+#[derive(Resource)]
+pub struct SelectedEntities { pub entities: Vec<Entity> }
+
+#[derive(Resource)]
+pub struct SselectedEntities { pub entities: HashSet<Entity> }
 
 #[derive(Resource)]
 pub struct CanPlayerBuild { pub enabled: bool  } // player pointing at ui entity
@@ -24,6 +30,7 @@ pub struct ObjectSelected {
 #[derive(Debug, Component, PartialEq, Eq, Clone, Copy)]
 pub enum Object {
     None,
+    Action,
     Worker
 }
 
@@ -31,9 +38,11 @@ pub struct Player;
 
 impl Plugin for Player {
     fn build(&self, app: &mut App) {
+        app.insert_resource(CanPlayerBuild { enabled: false });
         app.insert_resource(PlayerInventory { stacks: Vec::new() });
+        app.insert_resource(SelectedEntities { entities: Vec::new() });
+        app.insert_resource(SselectedEntities { entities: HashSet::new() });
         app.insert_resource(ObjectSelected { object: Object::Worker, ui_entity: Entity::from_raw(0)});
-        app.insert_resource(CanPlayerBuild { enabled: false  });
 
         app.add_systems(Startup, setup);
     }
