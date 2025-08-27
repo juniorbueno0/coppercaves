@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_northstar::{nav::Nav, prelude::{AgentPos, NextPos, Pathfind}, CardinalGrid};
 
-use crate::{mouse::MyWorldCoords, player::{Object, ObjectSelected, SelectedEntities, SselectedEntities}, world::TILESIZE};
+use crate::{player::{Object, ObjectSelected, SelectedEntities}, world::TILESIZE};
 
 pub struct Worker;
 
@@ -24,11 +24,9 @@ fn setup(mut commands: Commands) {
 
 fn entity_selection(
     window: Single<&Window>,
-    mouse_position: Res<MyWorldCoords>,
     input: Res<ButtonInput<MouseButton>>, 
     object_selected: Res<ObjectSelected>,
     mut entities: ResMut<SelectedEntities>,
-    mut hentities: ResMut<SselectedEntities>,
     aentities: Query<(&Transform, Entity), With<AgentPos>>,
     camera: Single<(&Camera, &GlobalTransform, &Transform), With<Camera>>,
 ) {
@@ -50,10 +48,10 @@ fn entity_selection(
 
             for (tf, entity) in aentities.iter() {
                 if Vec3::new(tf.translation.x / TILESIZE as f32, tf.translation.y / TILESIZE as f32, tf.translation.z) == Vec3::new(clicked_tile.unwrap().x as f32, clicked_tile.unwrap().y as f32, tf.translation.z) {
-                    hentities.entities.insert(entity);
+                    entities.entities.insert(entity);
                     println!("inserted");
-                }else if hentities.entities.contains(&entity) {
-                    hentities.entities.remove(&entity);
+                }else if entities.entities.contains(&entity) {
+                    entities.entities.remove(&entity);
                     println!("removed");
                 }
             }
@@ -65,45 +63,50 @@ fn move_player(
     mut query: Query<(Entity, &mut AgentPos, &NextPos, &mut Transform)>,
     mut commands: Commands,
 ) {
-    // for (entity, mut agent_pos, next_pos, mut transform) in &mut query {
-    //     transform.translation = Vec3::new(
-    //         next_pos.0.x as f32 * 12.0, // Align with the grid cell size.
-    //         next_pos.0.y as f32 * 12.0,
-    //         4.0,
-    //     );
+    for (entity, mut agent_pos, next_pos, mut transform) in &mut query {
+        transform.translation = Vec3::new(
+            next_pos.0.x as f32 * 12.0, // Align with the grid cell size.
+            next_pos.0.y as f32 * 12.0,
+            4.0,
+        );
 
-    //     agent_pos.0 = next_pos.0;
-    //     commands.entity(entity).remove::<NextPos>();
-    // }
+        agent_pos.0 = next_pos.0;
+        commands.entity(entity).remove::<NextPos>();
+    }
 }
 
 fn input(
     input: Res<ButtonInput<MouseButton>>,
     window: Single<&Window>,
+    entities_selected: Res<SelectedEntities>,
     camera: Single<(&Camera, &GlobalTransform, &Transform), With<Camera>>,
-    player: Single<Entity, With<AgentPos>>,
+    // player: Single<Entity, With<AgentPos>>,
     grid: Single<&mut CardinalGrid>,
     mut commands: Commands,
 ) {
-    // let window = window.into_inner();
-    // let (camera, camera_transform, _) = camera.into_inner();
+    // left click
+    let window = window.into_inner();
+    let (camera, camera_transform, _) = camera.into_inner();
     // let player = player.into_inner();
 
-    // let clicked_tile = window
-    //     .cursor_position()
-    //     .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
-    //     .map(|cursor_position| {
-    //         UVec3::new(
-    //             (cursor_position.x / TILESIZE as f32).round() as u32,
-    //             (cursor_position.y / TILESIZE as f32).round() as u32,
-    //             0,
-    //         )
-    //     });
-    // if input.just_pressed(MouseButton::Left) {
-    //     if let Some(goal) = clicked_tile {
-    //         commands.entity(player).insert(Pathfind::new(goal));
-    //     }
-    // }
+    let clicked_tile = window
+        .cursor_position()
+        .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
+        .map(|cursor_position| {
+            UVec3::new(
+                (cursor_position.x / TILESIZE as f32).round() as u32,
+                (cursor_position.y / TILESIZE as f32).round() as u32,
+                0,
+            )
+        });
+
+    if input.just_pressed(MouseButton::Right) {
+        if let Some(goal) = clicked_tile {
+            for e in &entities_selected.entities {
+                commands.entity(*e).insert(Pathfind::new(goal));
+            }
+        }
+    }
 
     // if input.just_pressed(MouseButton::Right) {
     //     if let Some(position) = clicked_tile {
