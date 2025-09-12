@@ -50,3 +50,7 @@ fn main() {
 // if more than 1 agent is selected 
 // search another gridcell to assign
 // assign the closer not assigned gridcell
+
+// when assigning the new agentpos 
+// order by closest worker to the new position
+// by order assign the new position then the closest grid_cells
