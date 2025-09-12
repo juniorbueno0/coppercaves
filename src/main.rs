@@ -54,3 +54,7 @@ fn main() {
 // when assigning the new agentpos 
 // order by closest worker to the new position
 // by order assign the new position then the closest grid_cells
+
+// workers cna operate machines to generate resources
+// you only have one but can get more 
+// automate things + rts mechanics
