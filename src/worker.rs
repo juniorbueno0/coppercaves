@@ -15,16 +15,16 @@ impl Plugin for Worker {
 
 fn setup(mut commands: Commands) {
     commands.spawn((
-        Name::new("Player"),
-        AgentPos(UVec3::new(4, 4, 0)),
-        Transform::from_xyz(12., 0., 4.),
+        Name::new("01"),
+        AgentPos(UVec3::new(8, 0, 0)),
+        Transform::from_xyz(8. * TILESIZE as f32, 0. * TILESIZE as f32, 4.),
         Sprite { color: Color::srgb(0.6,0.6,0.92), custom_size: Some(Vec2::new(12.0,12.0)), ..default() }
     ));
 
     commands.spawn((
-        Name::new("minion"),
-        AgentPos(UVec3::new(4, 4, 0)),
-        Transform::from_xyz(12., 0., 4.),
+        Name::new("02"),
+        AgentPos(UVec3::new(4, 0, 0)),
+        Transform::from_xyz(4. * TILESIZE as f32, 0. * TILESIZE as f32, 4.),
         Sprite { color: Color::srgb(0.6,0.6,0.92), custom_size: Some(Vec2::new(12.0,12.0)), ..default() }
     ));
 }
@@ -34,17 +34,23 @@ fn worker_selection(
     input: Res<ButtonInput<MouseButton>>, 
     object_selected: Res<ObjectSelected>,
     mut entities: ResMut<SelectedEntities>,
-    aentities: Query<(&Transform, Entity), With<AgentPos>>
+    agents_query: Query<(Entity, &AgentPos)>,
 ) {
     if input.just_pressed(MouseButton::Left) {
+        let mut found_someone = false;
         if object_selected.object == Object::Action || object_selected.object == Object::None {
-            for (tf, entity) in aentities.iter() {
-                if Vec3::new(tf.translation.x / TILESIZE as f32, tf.translation.y / TILESIZE as f32, tf.translation.z) == Vec3::new(grid_position.position.x as f32, grid_position.position.y as f32, tf.translation.z) {
-                    entities.entities.insert(entity);
-                }else if entities.entities.contains(&entity) {
-                    entities.entities.remove(&entity);
+            for (entity, agent_pos) in agents_query.iter() {
+                if agent_pos.0.x == grid_position.position.x && agent_pos.0.y == grid_position.position.y {
+                    found_someone = true;
+                    if entities.entities.contains(&entity) {
+                        entities.entities.remove(&entity);
+                    } else {
+                        entities.entities.insert(entity);
+                    }
                 }
             }
+
+            if !found_someone { entities.entities.clear(); }
         }
     }
 }
