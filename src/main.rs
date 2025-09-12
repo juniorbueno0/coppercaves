@@ -41,3 +41,11 @@ fn main() {
 
     app.run();
 }
+
+// didnt work
+// store the agen positions (agent_id, grid_position)
+// block the grid_positions where the agent is
+
+// pending
+// if more than 1 agent is selected 
+// search another gridcell to assign

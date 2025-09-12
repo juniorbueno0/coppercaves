@@ -7,24 +7,29 @@ pub struct Worker;
 
 impl Plugin for Worker {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup);
+        app.add_systems(Startup,setup);
+        // app.insert_resource(GridCellsBlocked { gridcell: Vec::new() });
+        // app.insert_resource(AgentsGridPositions { value: Vec::new() });
 
-        app.add_systems(Update, (worker_selection, apply_worker_movement, get_worker_new_position, lock_unlock_gridcell));
+        app.add_systems(Update, (worker_selection, apply_worker_movement, get_worker_new_position, lock_unlock_value));
+        // app.add_systems(Update, (store_worker_position, worker_value_block));
     }
 }
+
+const AGENT_Z_AXIS: f32 = 4.0;
 
 fn setup(mut commands: Commands) {
     commands.spawn((
         Name::new("01"),
         AgentPos(UVec3::new(8, 0, 0)),
-        Transform::from_xyz(8. * TILESIZE as f32, 0. * TILESIZE as f32, 4.),
+        Transform::from_xyz(8. * TILESIZE as f32, 0. * TILESIZE as f32, AGENT_Z_AXIS),
         Sprite { color: Color::srgb(0.6,0.6,0.92), custom_size: Some(Vec2::new(12.0,12.0)), ..default() }
     ));
 
     commands.spawn((
         Name::new("02"),
         AgentPos(UVec3::new(4, 0, 0)),
-        Transform::from_xyz(4. * TILESIZE as f32, 0. * TILESIZE as f32, 4.),
+        Transform::from_xyz(4. * TILESIZE as f32, 0. * TILESIZE as f32, AGENT_Z_AXIS),
         Sprite { color: Color::srgb(0.6,0.6,0.92), custom_size: Some(Vec2::new(12.0,12.0)), ..default() }
     ));
 }
@@ -36,23 +41,41 @@ fn worker_selection(
     mut entities: ResMut<SelectedEntities>,
     agents_query: Query<(Entity, &AgentPos)>,
 ) {
+    // use if let some to select 1 on mouse::left alone
     if input.just_pressed(MouseButton::Left) {
         let mut found_someone = false;
         if object_selected.object == Object::Action || object_selected.object == Object::None {
-            for (entity, agent_pos) in agents_query.iter() {
-                if agent_pos.0.x == grid_position.position.x && agent_pos.0.y == grid_position.position.y {
-                    found_someone = true;
-                    if entities.entities.contains(&entity) {
-                        entities.entities.remove(&entity);
-                    } else {
-                        entities.entities.insert(entity);
-                    }
-                }
+            if let Some(entity) = agents_query.iter().find(
+                |a| (a.1.0.x == grid_position.position.x) && (a.1.0.y == grid_position.position.y)
+            ) {
+                found_someone = true;
+                if entities.entities.contains(&entity.0) {
+                    entities.entities.remove(&entity.0);
+                } else { entities.entities.insert(entity.0); }
             }
 
             if !found_someone { entities.entities.clear(); }
         }
     }
+
+    // // modify is shift pressed + mouse::left select all + keepselecting
+    // if input.just_pressed(MouseButton::Left) {
+    //     let mut found_someone = false;
+    //     if object_selected.object == Object::Action || object_selected.object == Object::None {
+    //         for (entity, agent_pos) in agents_query.iter() {
+    //             if agent_pos.0.x == grid_position.position.x && agent_pos.0.y == grid_position.position.y {
+    //                 found_someone = true;
+    //                 if entities.entities.contains(&entity) {
+    //                     entities.entities.remove(&entity);
+    //                 } else {
+    //                     entities.entities.insert(entity);
+    //                 }
+    //             }
+    //         }
+
+    //         if !found_someone { entities.entities.clear(); } // no worker at the position selected...
+    //     }
+    // }
 }
 
 fn update_tile_selected(
@@ -92,15 +115,12 @@ fn get_worker_new_position(
     }
 }
 
-fn apply_worker_movement(
-    mut commands: Commands,
-    mut query: Query<(Entity, &mut AgentPos, &NextPos, &mut Transform)>,
-) {
+fn apply_worker_movement(mut commands: Commands,mut query: Query<(Entity, &mut AgentPos, &NextPos, &mut Transform)>) {
     for (entity, mut agent_pos, next_pos, mut transform) in &mut query {
         transform.translation = Vec3::new(
-            next_pos.0.x as f32 * 12.0, // Align with the grid cell size.
-            next_pos.0.y as f32 * 12.0,
-            4.0,
+            next_pos.0.x as f32 * TILESIZE as f32,
+            next_pos.0.y as f32 * TILESIZE as f32,
+            AGENT_Z_AXIS,
         );
 
         agent_pos.0 = next_pos.0;
@@ -108,7 +128,7 @@ fn apply_worker_movement(
     }
 }
 
-fn lock_unlock_gridcell(grid: Single<&mut CardinalGrid>,input: Res<ButtonInput<KeyCode>>,grid_position: Res<GridClicked>,) {
+fn lock_unlock_value(grid: Single<&mut CardinalGrid>,input: Res<ButtonInput<KeyCode>>,grid_position: Res<GridClicked>,) {
     if input.just_pressed(KeyCode::KeyX) {
         let mut grid = grid.into_inner();
 
@@ -122,3 +142,54 @@ fn lock_unlock_gridcell(grid: Single<&mut CardinalGrid>,input: Res<ButtonInput<K
         grid.build();
     }
 }
+
+// #[derive(Debug, Resource)]
+// struct AgentsGridPositions {
+//     value: Vec<(Entity, AgentPos)>
+// }
+
+// fn store_worker_position(mut agents: ResMut<AgentsGridPositions>,mut agents_query: Query<(Entity, &AgentPos)>) {
+//     for (entity, agent_pos) in &mut agents_query {
+
+//         let alredy_stored: bool = agents.value.iter().any(|a|{a.0 == entity});
+
+//         if alredy_stored {
+//             if let Some(position) = agents.value.iter_mut().position(|a| (a.1.0 != agent_pos.0) && (a.0 == entity)) {
+//                 agents.value.remove(position);
+//                 agents.value.push((entity, agent_pos.clone()));
+//                 println!("agent: {:?} {:?} ", entity, agent_pos.0);
+//             }
+//         }else {
+//             agents.value.push((entity, agent_pos.clone()));
+//             println!("agent: {:?} {:?} ", entity, agent_pos.0);
+//         }
+//     }
+// }
+
+// #[derive(Debug, Resource)]
+// struct GridCellsBlocked {
+//     gridcell: Vec<(Entity, AgentPos)>
+// }
+
+// fn worker_value_block(agents: Res<AgentsGridPositions>, mut agent_cells: ResMut<GridCellsBlocked>,mut grid: Single<&mut CardinalGrid>) {
+//     for (entity_a, agent_position) in &agents.value {
+
+//         let alredy_stored: bool = agent_cells.gridcell.iter().any(|a|{a.0 == *entity_a});
+
+//         if alredy_stored {
+//             if let Some(pos) = agent_cells.gridcell.iter().position(|agc| { (agc.0 == *entity_a) && (agc.1.0 != agent_position.0) }) {
+//                 grid.set_nav(agent_cells.gridcell[pos].1.0, Nav::Passable(1));
+//                 agent_cells.gridcell.remove(pos);
+//                 agent_cells.gridcell.push((*entity_a, agent_position.clone()));
+//                 grid.set_nav(agent_position.0, Nav::Impassable);
+//                 grid.build();
+//                 println!("gridcell: {:?} {:?} ", entity_a, agent_position.0);
+//             }
+//         }else {
+//             agent_cells.gridcell.push((*entity_a, agent_position.clone()));
+//             grid.set_nav(agent_position.0, Nav::Impassable);
+//             grid.build();
+//             println!("gridcell: {:?} {:?} ", entity_a, agent_position.0);
+//         }
+//     }
+// }
