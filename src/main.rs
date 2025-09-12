@@ -9,6 +9,8 @@ mod camera;
 mod worker;
 mod ui_game;
 
+// pending *create gamestates
+
 fn main() {
     let mut app: App = App::new();
 

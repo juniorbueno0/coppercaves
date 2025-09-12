@@ -6,7 +6,7 @@ use crate::{camera::MainCamera, world::TILESIZE};
 pub struct MyWorldCoords(pub Vec2);
 
 #[derive(Resource, Debug)]
-pub struct GridClicked{ position: UVec3 }
+pub struct GridClicked{ pub position: UVec3 }
 
 #[derive(Component)]
 #[require(Sprite, Transform)]

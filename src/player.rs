@@ -38,7 +38,7 @@ impl Plugin for Player {
         app.insert_resource(CanPlayerBuild { enabled: false });
         app.insert_resource(PlayerInventory { stacks: Vec::new() });
         app.insert_resource(SelectedEntities { entities: HashSet::new() });
-        app.insert_resource(ObjectSelected { object: Object::Worker, ui_entity: Entity::from_raw(0)});
+        app.insert_resource(ObjectSelected { object: Object::Action, ui_entity: Entity::from_raw(0)});
 
         app.add_systems(Startup, setup);
     }
