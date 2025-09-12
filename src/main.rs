@@ -49,3 +49,4 @@ fn main() {
 // pending
 // if more than 1 agent is selected 
 // search another gridcell to assign
+// assign the closer not assigned gridcell
